@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
-import { getFAANGData } from '../services/alphaVantage';
+import { getFAANGData } from '../services/yahoo';
 import { getZodiacSign, loadZodiacScript } from '../services/zodiac';
 
 interface StockData {
@@ -45,7 +45,7 @@ export const StockTable: React.FC = () => {
   }
 
   return (
-    <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <div className="overflow-x-auto">
       <table className="min-w-full">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-700">
@@ -53,7 +53,7 @@ export const StockTable: React.FC = () => {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Change</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Volume</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zodiac Sign</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zodiac</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -62,11 +62,11 @@ export const StockTable: React.FC = () => {
             const change = ((stock.data.close - stock.data.open) / stock.data.open) * 100;
 
             return (
-              <tr key={stock.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr key={stock.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Link to={`/stock/${stock.symbol}`} className="flex items-center hover:text-indigo-600">
+                  <Link to={`/stock/${stock.symbol}`} className="flex items-center text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
                     <Star className="h-4 w-4 text-yellow-400 mr-2" />
-                    <span className="font-medium text-gray-900 dark:text-white">{stock.symbol}</span>
+                    <span className="font-medium">{stock.symbol}</span>
                   </Link>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
@@ -82,10 +82,16 @@ export const StockTable: React.FC = () => {
                   {stock.data.volume.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-indigo-600">{zodiacInfo?.sign}</span>
-                    <span className="text-xs text-gray-500">{zodiacInfo?.chinese}</span>
-                  </div>
+                  {zodiacInfo && (
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                        {zodiacInfo.sign}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {zodiacInfo.element} • {zodiacInfo.quality}
+                      </span>
+                    </div>
+                  )}
                 </td>
               </tr>
             );
