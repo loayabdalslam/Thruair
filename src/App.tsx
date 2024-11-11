@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { StockTable } from './components/StockTable';
 import { AstroEvents } from './components/AstroEvents';
 import { StockDetail } from './pages/StockDetail';
-import { stockData, astroEvents } from './data/mockData';
+import { astroEvents } from './data/mockData';
 import { BarChart3, Moon, Sun } from 'lucide-react';
 
 function Dashboard() {
@@ -29,7 +29,7 @@ function Dashboard() {
           <div className="lg:col-span-2">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Top Market Movers</h2>
-              <StockTable stocks={stockData} />
+              <StockTable />
             </div>
           </div>
           
