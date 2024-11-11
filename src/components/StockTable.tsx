@@ -1,24 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
-import { getFAANGData } from '../services/yahoo';
+import { getFAANGData, StockData } from '../services/yahoo';
 import { getZodiacSign, loadZodiacScript } from '../services/zodiac';
 
-interface StockData {
+interface StockEntry {
   symbol: string;
-  data: {
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume: number;
-    date: string;
-  };
+  data: StockData;
 }
 
 export const StockTable: React.FC = () => {
-  const [stocks, setStocks] = useState<StockData[]>([]);
+  const [stocks, setStocks] = useState<StockEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -26,8 +20,9 @@ export const StockTable: React.FC = () => {
         await loadZodiacScript();
         const data = await getFAANGData();
         setStocks(data);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (err) {
+        setError('Failed to load stock data');
+        console.error('Error loading data:', err);
       } finally {
         setLoading(false);
       }
@@ -40,6 +35,14 @@ export const StockTable: React.FC = () => {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-600 bg-red-50 rounded-lg">
+        {error}
       </div>
     );
   }

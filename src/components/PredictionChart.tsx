@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { StockPredictor } from '../services/prediction';
 
@@ -9,16 +9,31 @@ interface PredictionChartProps {
 export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData }) => {
   const [predictions, setPredictions] = useState<number[]>([]);
   const [isTraining, setIsTraining] = useState(false);
+  const [predictor, setPredictor] = useState<StockPredictor | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Clean up TensorFlow model when component unmounts
+      predictor?.dispose();
+    };
+  }, [predictor]);
 
   const handleTrain = async () => {
     setIsTraining(true);
-    const predictor = new StockPredictor();
-    const prices = historicalData.map(d => d.close);
-    
-    await predictor.train(prices);
-    const forecast = predictor.predict(7); // Predict next 7 days
-    setPredictions(forecast);
-    setIsTraining(false);
+    try {
+      const newPredictor = new StockPredictor();
+      const prices = historicalData.map(d => d.close);
+      
+      await newPredictor.train(prices);
+      const forecast = await newPredictor.predict(prices, 7); // Predict next 7 days
+      
+      setPredictions(forecast);
+      setPredictor(newPredictor);
+    } catch (error) {
+      console.error('Error training model:', error);
+    } finally {
+      setIsTraining(false);
+    }
   };
 
   const chartData = [
@@ -38,7 +53,7 @@ export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData
           disabled={isTraining}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          {isTraining ? 'Training...' : 'Train Model'}
+          {isTraining ? 'Training Model...' : 'Train Model'}
         </button>
       </div>
       
@@ -56,6 +71,7 @@ export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData
               stroke="#8884d8"
               name="Actual Price"
               strokeWidth={2}
+              dot={false}
             />
             {predictions.length > 0 && (
               <Line
@@ -65,6 +81,7 @@ export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData
                 name="Predicted Price"
                 strokeWidth={2}
                 strokeDasharray="5 5"
+                dot={true}
               />
             )}
           </LineChart>
