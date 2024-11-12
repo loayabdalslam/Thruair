@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { StockDetail } from '../types';
 
 interface CandlestickChartProps {
@@ -13,15 +13,40 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({ data }) => {
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
-          <YAxis yAxisId="left" />
-          <YAxis yAxisId="right" orientation="right" />
-          <Tooltip />
+          <YAxis />
+          <Tooltip 
+            formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+            labelFormatter={(label) => `Date: ${label}`}
+          />
           <Legend />
-          <Bar yAxisId="left" dataKey="volume" fill="#8884d8" opacity={0.3} />
-          <Line yAxisId="right" type="monotone" dataKey="high" stroke="#82ca9d" />
-          <Line yAxisId="right" type="monotone" dataKey="low" stroke="#ff7300" />
-          <Line yAxisId="right" type="monotone" dataKey="open" stroke="#387908" />
-          <Line yAxisId="right" type="monotone" dataKey="close" stroke="#ff0000" />
+          <Line 
+            type="monotone" 
+            dataKey="high" 
+            stroke="#22c55e" 
+            name="High"
+            dot={false}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="low" 
+            stroke="#ef4444" 
+            name="Low"
+            dot={false}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="open" 
+            stroke="#3b82f6" 
+            name="Open"
+            dot={false}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="close" 
+            stroke="#8b5cf6" 
+            name="Close"
+            dot={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

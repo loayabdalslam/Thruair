@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { StockPredictor } from '../services/prediction';
+import { Brain, Loader2 } from 'lucide-react';
+import * as tf from '@tensorflow/tfjs';
 
 interface PredictionChartProps {
   historicalData: { date: string; close: number }[];
@@ -9,30 +10,107 @@ interface PredictionChartProps {
 export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData }) => {
   const [predictions, setPredictions] = useState<number[]>([]);
   const [isTraining, setIsTraining] = useState(false);
-  const [predictor, setPredictor] = useState<StockPredictor | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
-  useEffect(() => {
-    return () => {
-      // Clean up TensorFlow model when component unmounts
-      predictor?.dispose();
+  const createSequences = (data: number[], lookback: number = 7) => {
+    const X = [];
+    const y = [];
+    
+    for (let i = 0; i < data.length - lookback; i++) {
+      X.push(data.slice(i, i + lookback));
+      y.push(data[i + lookback]);
+    }
+
+    // Reshape X to [samples, timesteps, features]
+    return [
+      tf.tensor3d(X, [X.length, lookback, 1]),
+      tf.tensor2d(y, [y.length, 1])
+    ];
+  };
+
+  const normalize = (data: number[]) => {
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    return {
+      normalized: data.map(x => (x - min) / (max - min)),
+      min,
+      max
     };
-  }, [predictor]);
+  };
 
   const handleTrain = async () => {
     setIsTraining(true);
+    setProgress(0);
+    const startTime = Date.now();
+
     try {
-      const newPredictor = new StockPredictor();
       const prices = historicalData.map(d => d.close);
+      const { normalized, min, max } = normalize(prices);
+      const [X, y] = createSequences(normalized);
+
+      const model = tf.sequential({
+        layers: [
+          tf.layers.lstm({
+            units: 50,
+            inputShape: [7, 1],
+            returnSequences: true
+          }),
+          tf.layers.dropout({ rate: 0.2 }),
+          tf.layers.lstm({
+            units: 50,
+            returnSequences: false
+          }),
+          tf.layers.dropout({ rate: 0.2 }),
+          tf.layers.dense({ units: 1 })
+        ]
+      });
+
+      model.compile({
+        optimizer: tf.train.adam(0.001),
+        loss: 'meanSquaredError'
+      });
+
+      await model.fit(X, y, {
+        epochs: 100,
+        batchSize: 32,
+        validationSplit: 0.1,
+        callbacks: {
+          onEpochEnd: (epoch, logs) => {
+            const currentProgress = ((epoch + 1) / 100) * 100;
+            setProgress(currentProgress);
+            
+            const elapsed = Date.now() - startTime;
+            const estimatedTotal = elapsed / currentProgress * 100;
+            setTimeRemaining(Math.round((estimatedTotal - elapsed) / 1000));
+          }
+        }
+      });
+
+      // Prepare input for prediction
+      const lastWeek = normalized.slice(-7);
+      const inputTensor = tf.tensor3d([lastWeek], [1, 7, 1]); // Reshape to match LSTM input
+      const predictionTensor = model.predict(inputTensor) as tf.Tensor;
+      const predictionValue = await predictionTensor.data();
       
-      await newPredictor.train(prices);
-      const forecast = await newPredictor.predict(prices, 7); // Predict next 7 days
-      
-      setPredictions(forecast);
-      setPredictor(newPredictor);
+      // Denormalize predictions
+      const futurePredictions = Array.from(predictionValue).map(
+        p => p * (max - min) + min
+      );
+
+      setPredictions(futurePredictions);
+
+      // Cleanup tensors
+      X.dispose();
+      y.dispose();
+      inputTensor.dispose();
+      predictionTensor.dispose();
+      model.dispose();
     } catch (error) {
       console.error('Error training model:', error);
     } finally {
       setIsTraining(false);
+      setTimeRemaining(null);
     }
   };
 
@@ -51,9 +129,20 @@ export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData
         <button
           onClick={handleTrain}
           disabled={isTraining}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          {isTraining ? 'Training Model...' : 'Train Model'}
+          {isTraining ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Training ({progress.toFixed(0)}%)
+              {timeRemaining !== null && ` - ${timeRemaining}s remaining`}
+            </>
+          ) : (
+            <>
+              <Brain className="h-4 w-4" />
+              Train Model
+            </>
+          )}
         </button>
       </div>
       
