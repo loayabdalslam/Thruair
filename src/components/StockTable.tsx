@@ -1,35 +1,61 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Star } from 'lucide-react';
-import { getFAANGData, StockData } from '../services/yahoo';
-import { getZodiacSign, loadZodiacScript } from '../services/zodiac';
+import { TrendingUp, TrendingDown, Star, RefreshCw } from 'lucide-react';
+import { getZodiacSign } from '../services/zodiac';
 
-interface StockEntry {
+interface StockData {
   symbol: string;
-  data: StockData;
+  price: number;
+  change: number;
+  changePercent: number;
+  marketCap: number;
+  volume: number;
 }
 
 export const StockTable: React.FC = () => {
-  const [stocks, setStocks] = useState<StockEntry[]>([]);
+  const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  const fetchStockData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/stocks');
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const stocksData = data.map((quote) => ({
+        symbol: quote.symbol,
+        price: quote.regularMarketPrice,
+        change: quote.regularMarketChange,
+        changePercent: quote.regularMarketChangePercent,
+        marketCap: quote.marketCap,
+        volume: quote.regularMarketVolume,
+      }));
+
+      setStocks(stocksData);
+      setLastUpdate(new Date());
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching stock data:', err);
+      setError('Failed to load stock data.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const initializeData = async () => {
-      try {
-        await loadZodiacScript();
-        const data = await getFAANGData();
-        setStocks(data);
-      } catch (err) {
-        setError('Failed to load stock data');
-        console.error('Error loading data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeData();
+    fetchStockData();
+    const interval = setInterval(fetchStockData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
+
+  const zodiacInfo = getZodiacSign(new Date().toISOString().split('T')[0]);
+  const zodiacMood = zodiacInfo?.quality?.toLowerCase() || 'neutral';
 
   if (loading) {
     return (
@@ -39,68 +65,93 @@ export const StockTable: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-4 text-red-600 bg-red-50 rounded-lg">
-        {error}
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full">
-        <thead>
-          <tr className="bg-gray-50 dark:bg-gray-700">
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Symbol</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Change</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Volume</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zodiac</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-          {stocks.map((stock) => {
-            const zodiacInfo = getZodiacSign(stock.data.date);
-            const change = ((stock.data.close - stock.data.open) / stock.data.open) * 100;
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Top Market Movers</h2>
+          <span className="text-sm text-gray-500">
+            Last update: {lastUpdate.toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Star className={`h-5 w-5 ${
+              zodiacMood === 'positive' ? 'text-green-500' :
+              zodiacMood === 'negative' ? 'text-red-500' :
+              'text-yellow-500'
+            }`} />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              {zodiacInfo?.sign} Mood
+            </span>
+          </div>
+          <button
+            onClick={fetchStockData}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+      </div>
 
-            return (
-              <tr key={stock.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Link to={`/stock/${stock.symbol}`} className="flex items-center text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
-                    <Star className="h-4 w-4 text-yellow-400 mr-2" />
-                    <span className="font-medium">{stock.symbol}</span>
-                  </Link>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                  ${stock.data.close.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`flex items-center ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {change >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                    {change > 0 ? '+' : ''}{change.toFixed(2)}%
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                  {stock.data.volume.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {zodiacInfo && (
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                        {zodiacInfo.sign}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {zodiacInfo.element} • {zodiacInfo.quality}
-                      </span>
+      {error && (
+        <div className="p-4 mb-4 text-amber-700 bg-amber-50 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-700">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Symbol</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Change</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Market Cap</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Volume</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Zodiac Impact</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+            {stocks.map((stock) => {
+              const zodiacImpact = Math.random() > 0.5 ? 'positive' : 'negative';
+
+              return (
+                <tr key={stock.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link to={`/stock/${stock.symbol}`} className="flex items-center text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+                      <Star className="h-4 w-4 text-yellow-400 mr-2" />
+                      <span className="font-medium">{stock.symbol}</span>
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                    ${stock.price.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className={`flex items-center ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {stock.change >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                      {stock.change > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
                     </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                    ${(stock.marketCap / 1e9).toFixed(2)}B
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                    {stock.volume.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      zodiacImpact === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {zodiacImpact.charAt(0).toUpperCase() + zodiacImpact.slice(1)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

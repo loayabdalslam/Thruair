@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"node server/index.js\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -13,12 +13,15 @@
     "@google/generative-ai": "^0.2.1",
     "@tensorflow/tfjs": "^4.17.0",
     "axios": "^1.6.7",
+    "cors": "^2.8.5",
     "date-fns": "^3.3.1",
+    "express": "^4.21.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
     "recharts": "^2.12.2",
+    "yahoo-finance2": "^2.13.2",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
@@ -26,6 +29,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
+    "concurrently": "^8.2.2",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
