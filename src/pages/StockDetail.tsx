@@ -4,22 +4,14 @@ import { format, subDays } from 'date-fns';
 import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import { getZodiacSign } from '../services/zodiac';
 import { getGeminiZodiacImpact } from '../services/gemini';
+import { fetchStockHistory } from '../services/api';
 import { CandlestickChart } from '../components/CandlestickChart';
 import { PredictionChart } from '../components/PredictionChart';
 import { ZodiacImpactChart } from '../components/ZodiacImpactChart';
 import { ZodiacImpactModal } from '../components/ZodiacImpactModal';
 import { DateRangeSelector } from '../components/DateRangeSelector';
 import { GeminiZodiacImpact } from '../services/gemini';
-
-interface StockData {
-  date: string;
-  price: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import { StockData } from '../types';
 
 const DATE_RANGES = [
   { label: '1W', days: 7 },
@@ -50,24 +42,8 @@ export const StockDetail: React.FC = () => {
 
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/stock/${symbol}/history`);
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        const formattedData = data.map((item: any) => ({
-          date: format(new Date(item.date), 'yyyy-MM-dd'),
-          open: Number(item.open),
-          high: Number(item.high),
-          low: Number(item.low),
-          close: Number(item.close),
-          volume: Number(item.volume),
-          price: Number(item.close)
-        }));
-
-        setHistoricalData(formattedData);
+        const data = await fetchStockHistory(symbol);
+        setHistoricalData(data);
 
         const zodiacInfo = getZodiacSign(endDate);
         if (zodiacInfo) {

@@ -4,7 +4,8 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import * as yahooFinance from 'yahoo-finance2';
+import * as yahooFinancex from 'yahoo-finance2';
+import yahooFinance from 'yahoo-finance2';
 
 const app = express();
 const PORT = 6661;
@@ -43,7 +44,7 @@ const writeNewsData = (data) => {
 app.get('/api/stocks', async (req, res) => {
   try {
     const stockData = await Promise.all(
-      TOP_SYMBOLS.map(symbol => yahooFinance.default.quote(symbol))
+      TOP_SYMBOLS.map(symbol => yahooFinancex.default.quote(symbol))
     );
     res.json(stockData);
   } catch (error) {

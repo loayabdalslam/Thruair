@@ -2,15 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Star, RefreshCw } from 'lucide-react';
 import { getZodiacSign } from '../services/zodiac';
-
-interface StockData {
-  symbol: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  marketCap: number;
-  volume: number;
-}
+import { fetchStocks } from '../services/api';
+import { StockData } from '../types';
 
 export const StockTable: React.FC = () => {
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -21,28 +14,13 @@ export const StockTable: React.FC = () => {
   const fetchStockData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/stocks');
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const stocksData = data.map((quote) => ({
-        symbol: quote.symbol,
-        price: quote.regularMarketPrice,
-        change: quote.regularMarketChange,
-        changePercent: quote.regularMarketChangePercent,
-        marketCap: quote.marketCap,
-        volume: quote.regularMarketVolume,
-      }));
-
+      const stocksData = await fetchStocks();
       setStocks(stocksData);
       setLastUpdate(new Date());
       setError(null);
     } catch (err) {
       console.error('Error fetching stock data:', err);
-      setError('Failed to load stock data.');
+      setError(err instanceof Error ? err.message : 'Failed to load stock data');
     } finally {
       setLoading(false);
     }
@@ -50,7 +28,7 @@ export const StockTable: React.FC = () => {
 
   useEffect(() => {
     fetchStockData();
-    const interval = setInterval(fetchStockData, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchStockData, 30000);
     return () => clearInterval(interval);
   }, []);
 
