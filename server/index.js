@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import * as yahooFinance from 'yahoo-finance2'; // Import all methods from yahoo-finance2
+import yahooFinancex from 'yahoo-finance2'; // Import all methods from yahoo-finance2
 
 const app = express();
 const PORT = 5000;
@@ -34,9 +35,9 @@ app.get('/api/stock/:symbol/history', async (req, res) => {
   const { symbol } = req.params;
 
   try {
-    const history = await yahooFinance.historical(symbol, {
-      period1: '2024-01-01', // Set the start date for historical data (e.g., 30 days ago)
-      period2: '2025-12-01', // Set the end date for historical data
+    const history = await yahooFinancex.historical(symbol, {
+      period1: '2023-11-01', // Set the start date for historical data (e.g., 30 days ago)
+      period2: '2024-12-01', // Set the end date for historical data
       interval: '1d', // Interval of data points (1 day in this case)
     });
 
