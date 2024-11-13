@@ -15,7 +15,7 @@ interface PredictionChartProps {
   mlSettings: MLSettings;
 }
 
-export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData, mlSettings }) => {
+export const PredictionChart: React.FC<PredictionChartProps> = ({ historicalData, mlSettings = { epochs: 10, trainingDays: 100, predictionDays: 30, lookbackWindow: 20 } }) => {
   const [predictions, setPredictions] = useState<number[]>([]);
   const [isTraining, setIsTraining] = useState(false);
   const [progress, setProgress] = useState(0);

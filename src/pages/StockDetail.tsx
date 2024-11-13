@@ -12,6 +12,7 @@ import { ZodiacImpactModal } from '../components/ZodiacImpactModal';
 import { DateRangeSelector } from '../components/DateRangeSelector';
 import { GeminiZodiacImpact } from '../services/gemini';
 import { StockData } from '../types';
+import { MlSettingsModal } from '../components/MlSettingsModal';
 
 const DATE_RANGES = [
   { label: '1W', days: 7 },
@@ -30,10 +31,22 @@ export const StockDetail: React.FC = () => {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [zodiacImpact, setZodiacImpact] = useState<GeminiZodiacImpact | null>(null);
   const [showImpactModal, setShowImpactModal] = useState(false);
+  const [showMlSettingsModal, setShowMlSettingsModal] = useState(false); // State for ML settings modal visibility
+  const [mlSettings, setMlSettings] = useState({
+    epochs: 10,
+    trainingDays: 100,
+    predictionDays: 30,
+    lookbackWindow: 20,
+  });
 
   const handleRangeSelect = (days: number) => {
     setStartDate(format(subDays(new Date(), days), 'yyyy-MM-dd'));
     setEndDate(format(new Date(), 'yyyy-MM-dd'));
+  };
+
+  const updateMlSettings = (newSettings: { epochs: number; trainingDays: number; predictionDays: number; lookbackWindow: number }) => {
+    setMlSettings(newSettings); // Update state with the new settings
+    setShowMlSettingsModal(false); // Close the modal after saving settings
   };
 
   useEffect(() => {
@@ -121,17 +134,30 @@ export const StockDetail: React.FC = () => {
               onRangeSelect={handleRangeSelect}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 ">
               <div>
                 <h2 className="text-lg font-semibold mb-4">Price History</h2>
                 <CandlestickChart data={historicalData} />
               </div>
+
               <div>
-                <PredictionChart historicalData={historicalData} />
+            
+                <PredictionChart historicalData={historicalData} mlSettings={mlSettings} />
+            
+    <button
+                  onClick={() => setShowMlSettingsModal(true)}
+                  className="mt-4 p-2 bg-indigo-600 text-white rounded-lg"
+                >
+                  Adjust Prediction Settings
+                </button>
               </div>
             </div>
           </div>
         </div>
+
+        {showMlSettingsModal && (
+          <MlSettingsModal settings={mlSettings} onSave={updateMlSettings} onClose={() => setShowMlSettingsModal(false)} />
+        )}
 
         {zodiacInfo && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
