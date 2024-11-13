@@ -135,21 +135,21 @@ export const StockDetail: React.FC = () => {
             />
 
             <div className="grid grid-cols-1 ">
-              <div>
+              <div className="mb-4">
                 <h2 className="text-lg font-semibold mb-4">Price History</h2>
                 <CandlestickChart data={historicalData} />
               </div>
 
               <div>
-            
+         
                 <PredictionChart historicalData={historicalData} mlSettings={mlSettings} />
-            
-    <button
+              <button className="h-4 w-4"
                   onClick={() => setShowMlSettingsModal(true)}
                   className="mt-4 p-2 bg-indigo-600 text-white rounded-lg"
                 >
                   Adjust Prediction Settings
-                </button>
+                </button>   
+  
               </div>
             </div>
           </div>
